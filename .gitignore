@@ -1,0 +1,33 @@
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Terraform
+backend.hcl
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+*.tfvars.json
+# Keep .terraform.lock.hcl in git for consistent provider versions in CI
+# crash logs
+crash.log
+crash.*.log
+
+# Python (Flask)
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# Helm
+charts/
+*.tgz
+
+# OS files
+.DS_Store
+Thumbs.db

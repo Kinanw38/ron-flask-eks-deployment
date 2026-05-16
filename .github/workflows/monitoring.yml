@@ -1,0 +1,37 @@
+name: Deploy Monitoring (Bonus 2)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  monitoring:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Update kube config
+      run: aws eks update-kubeconfig --region us-east-1 --name ron-eks-mission
+
+    - name: Install Prometheus + Grafana
+      run: |
+        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+        helm repo update
+        helm upgrade --install kube-prometheus prometheus-community/kube-prometheus-stack \
+          --namespace monitoring \
+          --create-namespace \
+          --values monitoring/values.yaml \
+          --wait --timeout 15m
+
+    - name: Print Grafana access
+      run: |
+        echo "Grafana LoadBalancer:"
+        kubectl get svc -n monitoring kube-prometheus-grafana
+        echo "Login: admin / admin"

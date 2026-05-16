@@ -1,0 +1,4 @@
+# Copy to backend.hcl and set your bucket name after bootstrap apply:
+#   terraform init -backend-config=backend.hcl
+#
+bucket = "ron-devops-state-XXXXXXXX"
