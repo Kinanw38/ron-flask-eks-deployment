@@ -1,0 +1,19 @@
+1. Get the application URL:
+
+{{- if eq .Values.service.type "LoadBalancer" }}
+
+  NOTE: It may take a few minutes for the LoadBalancer address to be available.
+
+  kubectl get svc flask-app-service -w
+
+  Then open: http://<EXTERNAL-IP>
+
+{{- else }}
+
+  kubectl get svc flask-app-service
+
+{{- end }}
+
+2. Check pods:
+
+  kubectl get pods -l app=flask-app

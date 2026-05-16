@@ -1,0 +1,47 @@
+name: Terraform Infrastructure
+
+on:
+  push:
+    paths:
+      - 'Terraform/**'
+      - 'bootstrap/**'
+      - '.github/workflows/terraform.yml'
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Check TF_STATE_BUCKET secret
+      run: |
+        if [ -z "${{ secrets.TF_STATE_BUCKET }}" ]; then
+          echo "::error::Missing GitHub secret TF_STATE_BUCKET."
+          echo "Run bootstrap locally, then add the S3 bucket name as repository secret TF_STATE_BUCKET."
+          exit 1
+        fi
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+
+    - name: Terraform Init
+      run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}"
+      working-directory: ./Terraform
+
+    - name: Terraform Plan
+      run: terraform plan
+      working-directory: ./Terraform
+
+    - name: Terraform Apply
+      run: terraform apply -auto-approve
+      working-directory: ./Terraform
