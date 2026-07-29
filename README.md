@@ -18,7 +18,7 @@ A production-grade DevOps infrastructure: containerized Flask microservice on **
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌─────────┐     ┌──────────────┐
-│  bootstrap  │ ──► │   Terraform  │ ──► │   ECR  │ ──►  │ flask-chart  │
+│  bootstrap  │ ──► │   Terraform  │ ──► │   ECR   │ ──► │ flask-chart  │
 │  (S3 state) │     │ VPC/EKS/ECR  │     │  image  │     │  (Helm/EKS)  │
 └─────────────┘     └──────────────┘     └─────────┘     └──────────────┘
                               ▲                                    │
