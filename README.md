@@ -1,8 +1,8 @@
 # 🚀 AWS EKS Managed Infrastructure & Flask App
 
-A production-style DevOps assignment: containerized Flask on **Amazon EKS**, infrastructure as code with **Terraform**, deployment with **Helm**, and automation via **GitHub Actions**.
+A production-grade DevOps infrastructure: containerized Flask microservice on **Amazon EKS**, infrastructure as code with **Terraform**, deployment with **Helm**, and automation via **GitHub Actions**.
 
-> **Personal twist:** S3 state backend via `bootstrap/` (no manual bucket creation) + custom dark-themed Flask UI.
+> **Architecture Highlight:** S3 state backend via `bootstrap/` (automated state creation without manual setup) + custom dark-themed Flask UI.
 
 ---
 
@@ -33,8 +33,8 @@ Place images in `docs/images/` (lowercase filenames).
 | File | What to show |
 |------|----------------|
 | `app.png` | Flask UI in browser |
-| `workflow.png` | GitHub Actions — Terraform workflow (Bonus 1) |
-| `grafana.png` | Grafana — Kubernetes pods dashboard (Bonus 2) |
+| `workflow.png` | GitHub Actions — Terraform workflow |
+| `grafana.png` | Grafana — Kubernetes pods dashboard |
 
 > Use **lowercase** filenames (`app.png` not `App.png`) for Linux/GitHub.
 
@@ -42,11 +42,11 @@ Place images in `docs/images/` (lowercase filenames).
 
 ![Flask application](docs/images/app.png)
 
-#### Bonus 1 — CI/CD (Terraform workflow)
+#### Automated CI/CD (Terraform Workflow)
 
 ![Terraform workflow](docs/images/workflow.png)
 
-#### Bonus 2 — Monitoring
+#### Cluster Monitoring
 
 ![Grafana monitoring](docs/images/grafana.png)
 
@@ -87,7 +87,7 @@ Place images in `docs/images/` (lowercase filenames).
 
 ---
 
-### 1️⃣ Backend bootstrapping
+### 1️⃣ Backend Bootstrapping
 
 **Working directory:** `bootstrap/`
 
@@ -98,11 +98,11 @@ terraform apply
 
 Copy output `state_bucket_name` (e.g. `ron-devops-state-a1b2c3d4`).
 
-> No DynamoDB — assignment requires S3 for state only.
+> Configured to utilize S3 for remote state management.
 
 ---
 
-### 2️⃣ Infrastructure provisioning (Terraform)
+### 2️⃣ Infrastructure Provisioning (Terraform)
 
 **Working directory:** `Terraform/`
 
@@ -124,7 +124,7 @@ terraform output node_iam_role_arn
 
 ---
 
-### 3️⃣ Application containerization (Docker)
+### 3️⃣ Application Containerization (Docker)
 
 **Working directory:** `app/` — see [app/README.md](app/README.md)
 
@@ -139,7 +139,7 @@ docker push <ECR_REPOSITORY_URL>:latest
 
 ---
 
-### 4️⃣ Application deployment (Helm)
+### 4️⃣ Application Deployment (Helm)
 
 **Working directory:** `flask-chart/`
 
@@ -161,26 +161,26 @@ Open `http://<EXTERNAL-IP>`.
 
 ---
 
-### 5️⃣ GitHub Actions (CI/CD)
+### 5️⃣ GitHub Actions (CI/CD Pipeline)
 
 **Repository secrets:**
 
 | Secret | Purpose |
 |--------|---------|
-| `AWS_ACCESS_KEY_ID` | AWS auth |
-| `AWS_SECRET_ACCESS_KEY` | AWS auth |
+| `AWS_ACCESS_KEY_ID` | AWS authentication |
+| `AWS_SECRET_ACCESS_KEY` | AWS authentication |
 | `TF_STATE_BUCKET` | S3 backend bucket name |
 
-**Order matters:**
+**Deployment Execution Order:**
 
-1. `bootstrap` (local) → create bucket  
+1. `bootstrap` (local) → create remote state bucket  
 2. Add `TF_STATE_BUCKET` secret  
-3. Push → **Terraform Infrastructure** workflow (creates ECR + EKS)  
-4. **Build and Deploy** runs after Terraform succeeds (or on `app/` / `flask-chart/` changes)
+3. Push → **Terraform Infrastructure** workflow (provisions ECR + EKS)  
+4. **Build and Deploy** triggers after infrastructure setup succeeds (or upon `app/` / `flask-chart/` changes)
 
 ---
 
-## 🧹 Teardown — delete everything (important order)
+## 🧹 Teardown — Resource Cleanup
 
 LoadBalancer ENIs block VPC deletion. Run from any directory where `kubectl` / `helm` work (after `aws eks update-kubeconfig`).
 
@@ -190,10 +190,10 @@ LoadBalancer ENIs block VPC deletion. Run from any directory where `kubectl` / `
 aws eks update-kubeconfig --region us-east-1 --name ron-eks-mission
 
 helm uninstall my-flask-app
-helm uninstall kube-prometheus -n monitoring   # skip if Bonus 2 was not installed
+helm uninstall kube-prometheus -n monitoring   # skip if monitoring stack was not installed
 ```
 
-### Step 2 — Wait for LoadBalancers to disappear
+### Step 2 — Wait for LoadBalancers to terminate
 
 ```bash
 kubectl get svc -A
@@ -201,7 +201,7 @@ kubectl get svc -A
 
 Wait until `flask-app-service` and `kube-prometheus-grafana` have no `EXTERNAL-IP` (2–5 minutes).
 
-### Step 3 — Destroy AWS infrastructure (Terraform)
+### Step 3 — Destroy AWS Infrastructure (Terraform)
 
 **Working directory:** `Terraform/`
 
@@ -210,32 +210,28 @@ cd Terraform
 terraform destroy
 ```
 
-This removes: VPC, NAT, EKS, node groups, ECR repository (and images inside it), IAM roles created by this project.
+This removes: VPC, NAT Gateway, EKS Cluster, node groups, ECR repository, and associated IAM roles.
 
-### Step 4 — S3 state bucket (bootstrap)
+### Step 4 — S3 State Bucket Cleanup
 
-The state bucket is **not** deleted by `terraform destroy`. It was created in `bootstrap/` with `prevent_destroy`.
+The state bucket is protected by `prevent_destroy` in `bootstrap/`.
 
-To remove it (optional, only when you are done forever):
+To destroy:
 
 ```bash
 cd bootstrap
-# First remove prevent_destroy from main.tf, then:
+# Remove prevent_destroy from main.tf if destroying permanently:
 terraform destroy
 ```
 
 Or delete the bucket manually in AWS Console → S3.
 
-### Step 5 — Local cleanup (optional)
+### Step 5 — Local Cleanup
 
 ```bash
 docker image rm flask-app:latest 2>/dev/null || true
-docker image rm <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/ron-eks-mission-repo:latest 2>/dev/null || true
+docker image rm <AWS_ACCOUNT_ID>[.dkr.ecr.us-east-1.amazonaws.com/ron-eks-mission-repo:latest](https://.dkr.ecr.us-east-1.amazonaws.com/ron-eks-mission-repo:latest) 2>/dev/null || true
 ```
-
-### Verify nothing is left billing
-
-In AWS Console check: **EKS**, **EC2**, **VPC**, **ECR**, **Load Balancers** — all empty for this project.
 
 ---
 
@@ -251,63 +247,54 @@ Custom dark Material Design dashboard:
 
 ---
 
-## 🎯 Bonus features
+## 🎯 Production & Advanced Features
 
-### Bonus 1 — Terraform via GitHub Actions ✅
+### Feature 1 — Automated Infrastructure via GitHub Actions ✅
 
 Workflow: [`.github/workflows/terraform.yml`](.github/workflows/terraform.yml)
 
-**What it does:** runs `terraform plan` + `terraform apply` on AWS (VPC, EKS, ECR, …).
+**Execution:** Runs `terraform plan` + `terraform apply` directly on AWS via automated CI workflows.
 
-**One-time setup (same as main project):**
+**Setup:**
 1. `bootstrap` → copy `state_bucket_name`
-2. GitHub secret `TF_STATE_BUCKET` = that bucket name
-3. GitHub secrets `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`
-
-**Run:** GitHub → Actions → **Terraform Infrastructure** → *Run workflow*  
-(or push changes under `Terraform/`)
+2. Configure GitHub Secret `TF_STATE_BUCKET`
+3. Configure AWS IAM credentials in GitHub Secrets
 
 ---
 
-### Bonus 2 — Monitoring (Prometheus + Grafana) ✅
+### Feature 2 — Observability & Monitoring Stack (Prometheus + Grafana) ✅
 
 Config: [`monitoring/values.yaml`](monitoring/values.yaml)  
 Workflow: [`.github/workflows/monitoring.yml`](.github/workflows/monitoring.yml)
 
-**What it does:** installs `kube-prometheus-stack` — metrics for the cluster and your pods (including Flask).
+**Capabilities:** Installs `kube-prometheus-stack` providing full cluster metrics, container health, and custom app dashboards.
 
-**Install (pick one):**
+**Deployment:**
 
-*From your machine (WSL):*
 ```bash
 aws eks update-kubeconfig --region us-east-1 --name ron-eks-mission
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add prometheus-community [https://prometheus-community.github.io/helm-charts](https://prometheus-community.github.io/helm-charts)
 helm repo update
 helm upgrade --install kube-prometheus prometheus-community/kube-prometheus-stack \
   -n monitoring --create-namespace -f monitoring/values.yaml
 kubectl get svc -n monitoring kube-prometheus-grafana
 ```
-Open `http://<EXTERNAL-IP>` → login `admin` / `admin` → screenshot for `docs/images/grafana.png`
-
-*Or via GitHub:* Actions → **Deploy Monitoring (Bonus 2)** → *Run workflow*
-
-> Uses extra cluster resources. Uninstall before `terraform destroy` (see Teardown).
 
 ---
 
-## 🎯 Assignment checklist
+## 🎯 Technical Deliverables & Requirements
 
-- [x] Terraform: VPC, public + private subnets, NAT, EKS, 2 node groups, ECR, IAM  
-- [x] Terraform outputs: cluster name, endpoint, ECR URL, IAM ARNs  
-- [x] Dockerfile + ECR push  
-- [x] Helm chart + internet access (LoadBalancer)  
-- [x] GitHub Actions: build, push, deploy  
-- [x] Bonus 1: Terraform workflow  
-- [x] Bonus 2: Monitoring (install when ready + `grafana.png`)  
-- [x] App screenshot (`app.png`)
+- [x] **Infrastructure as Code:** VPC, public/private subnets, NAT Gateway, EKS Cluster, 2 Node Groups, ECR, IAM Roles  
+- [x] **Automation Outputs:** Cluster endpoint, ECR repository URL, IAM ARNs  
+- [x] **Containerization:** Dockerfile optimization & ECR image pushes  
+- [x] **Orchestration:** Helm chart configuration & LoadBalancer service setup  
+- [x] **CI/CD:** Multi-stage GitHub Actions workflows for build & deployment  
+- [x] **IaC Pipeline:** Automated Terraform deployment workflow  
+- [x] **Monitoring & Observability:** Prometheus & Grafana stack integration  
 
 ---
 
 ## 👨‍💻 Developed By
 
-**Ron** | DevOps Professional Course 2026
+**Ron Yehonatan Keinan** | DevOps Engineer  
+[LinkedIn Profile](https://www.linkedin.com/in/ron-yehonatan-keinan) • [GitHub](https://github.com/Kinanw38)
