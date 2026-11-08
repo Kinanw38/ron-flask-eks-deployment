@@ -28,16 +28,6 @@ A production-grade DevOps infrastructure: containerized Flask microservice on **
 
 ### 📸 Screenshots
 
-Place images in `docs/images/` (lowercase filenames).
-
-| File | What to show |
-|------|----------------|
-| `app.png` | Flask UI in browser |
-| `workflow.png` | GitHub Actions — Terraform workflow |
-| `grafana.png` | Grafana — Kubernetes pods dashboard |
-
-> Use **lowercase** filenames (`app.png` not `App.png`) for Linux/GitHub.
-
 #### Application
 
 ![Flask application](docs/images/app.png)
